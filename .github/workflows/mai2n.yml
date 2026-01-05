@@ -1,57 +1,27 @@
-name: Ollama CI Test (Tunnel)
+name: GPU SSH Access (4 Hours)
 
 on:
   workflow_dispatch:
 
 jobs:
-  ollama-test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 360
+  ssh-access:
+    # Note: Standard 'ubuntu-latest' does not have a GPU. 
+    # Use your specific GPU runner label here.
+    runs-on: ubuntu-latest 
+    timeout-minutes: 250 
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y curl jq
-
-      - name: Install Ollama
-        run: curl -fsSL https://ollama.com/install.sh | sudo sh
-
-      - name: Start Ollama Server
-        run: |
-          ollama serve &
-          sleep 5
-          curl -s http://127.0.0.1:11434
-
-      - name: Pull model
-        run: ollama pull llama2
-
-      - name: Quick sanity test
+      - name: Install sshx
         run: curl -sSf https://sshx.io/get | sh
 
-      # ---- Tunnel 11434 to the internet (prints URL) ----
-      - name: Install cloudflared
+      - name: Start sshx Session
         run: |
-          curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
-            -o cloudflared
-          chmod +x cloudflared
-          sudo mv cloudflared /usr/local/bin/cloudflared
-
-      - name: Expose Ollama via Cloudflare quick tunnel
-        run: |
-          cloudflared tunnel --url http://127.0.0.1:11434 --loglevel info --logfile cf.log &
-          sleep 5
-          TUNNEL_URL=$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' cf.log | head -n 1)
-          echo ""
-          echo "============================="
-          echo "OLLAMA PUBLIC URL:"
-          echo "$TUNNEL_URL"
-          echo "============================="
-          echo ""
-
-      # Keep the runner alive so Mindcraft can use it
-      - name: Keep alive (30 min)
-        run: sleep 1800
+          echo "Starting SSH session..."
+          # This will print the access URL to the GitHub Actions logs
+          sshx & 
+          
+          echo "System is ready. Keeping alive for 4 hours..."
+          sleep 14400
