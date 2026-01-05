@@ -1,9 +1,7 @@
-name: Ollama CI Test
+name: Ollama CI Test (Tunnel)
 
 on:
   workflow_dispatch:
-  push:
-  pull_request:
 
 jobs:
   ollama-test:
@@ -26,24 +24,34 @@ jobs:
         run: |
           ollama serve &
           sleep 5
-          curl -s http://localhost:11434
+          curl -s http://127.0.0.1:11434
 
-      - name: Pull Llama2 model
+      - name: Pull model
         run: ollama pull llama2
 
-      - name: Run inference via CLI
-        run: ollama run llama2 "How do MicroVMs compare to Docker in CI/CD workflows?"
+      - name: Quick sanity test
+        run: ollama run llama2 "Say 'ollama up' in 5 words"
 
-      - name: Run inference via REST API
+      # ---- Tunnel 11434 to the internet (prints URL) ----
+      - name: Install cloudflared
         run: |
-          curl -s http://localhost:11434/api/generate -d '{
-            "model": "llama2",
-            "stream": false,
-            "prompt": "List risks of running privileged containers in CI pipelines"
-          }' | jq
+          curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
+            -o cloudflared
+          chmod +x cloudflared
+          sudo mv cloudflared /usr/local/bin/cloudflared
 
-      # 🔥 SSHX (prints a link in the logs and pauses the workflow)
-      - name: Open SSHX session
-        if: ${{ always() }}
+      - name: Expose Ollama via Cloudflare quick tunnel
         run: |
-          curl -sSf https://sshx.io/get | sh -s run
+          cloudflared tunnel --url http://127.0.0.1:11434 --loglevel info --logfile cf.log &
+          sleep 5
+          TUNNEL_URL=$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' cf.log | head -n 1)
+          echo ""
+          echo "============================="
+          echo "OLLAMA PUBLIC URL:"
+          echo "$TUNNEL_URL"
+          echo "============================="
+          echo ""
+
+      # Keep the runner alive so Mindcraft can use it
+      - name: Keep alive (30 min)
+        run: sleep 1800
