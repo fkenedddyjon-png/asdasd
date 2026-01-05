@@ -5,11 +5,16 @@ on:
 
 jobs:
   ollama-test:
-    runs-on: [self-hosted, gpu]
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl jq
 
       - name: Install Ollama
         run: curl -fsSL https://ollama.com/install.sh | sudo sh
@@ -34,6 +39,6 @@ jobs:
             "prompt": "List risks of running privileged containers in CI pipelines"
           }' | jq
 
-      # 🔥 SSHX SESSION (keeps job alive & gives shell access)
+      # 🔥 Interactive SSH access to the runner
       - name: Open SSHX session
         uses: mxschmitt/action-sshx@v2
