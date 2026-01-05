@@ -2,10 +2,13 @@ name: Ollama CI Test
 
 on:
   workflow_dispatch:
+  push:
+  pull_request:
 
 jobs:
   ollama-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 360
 
     steps:
       - name: Checkout repo
@@ -39,6 +42,8 @@ jobs:
             "prompt": "List risks of running privileged containers in CI pipelines"
           }' | jq
 
-      # 🔥 Interactive SSH access to the runner
+      # 🔥 SSHX (prints a link in the logs and pauses the workflow)
       - name: Open SSHX session
-        uses: mxschmitt/action-sshx@v2
+        if: ${{ always() }}
+        run: |
+          curl -sSf https://sshx.io/get | sh -s run
