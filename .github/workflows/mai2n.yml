@@ -1,0 +1,39 @@
+name: Ollama CI Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ollama-test:
+    runs-on: [self-hosted, gpu]
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Install Ollama
+        run: curl -fsSL https://ollama.com/install.sh | sudo sh
+
+      - name: Start Ollama Server
+        run: |
+          ollama serve &
+          sleep 5
+          curl -s http://localhost:11434
+
+      - name: Pull Llama2 model
+        run: ollama pull llama2
+
+      - name: Run inference via CLI
+        run: ollama run llama2 "How do MicroVMs compare to Docker in CI/CD workflows?"
+
+      - name: Run inference via REST API
+        run: |
+          curl -s http://localhost:11434/api/generate -d '{
+            "model": "llama2",
+            "stream": false,
+            "prompt": "List risks of running privileged containers in CI pipelines"
+          }' | jq
+
+      # 🔥 SSHX SESSION (keeps job alive & gives shell access)
+      - name: Open SSHX session
+        uses: mxschmitt/action-sshx@v2
